@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="wwwroot\css\index.css" />
+    <None Include="wwwroot\js\jquery-3.7.1.intellisense.js" />
+    <None Include="wwwroot\js\jquery-3.7.1.js" />
+    <None Include="wwwroot\js\jquery-3.7.1.min.js" />
+    <None Include="wwwroot\js\jquery-3.7.1.min.map" />
+    <None Include="wwwroot\js\jquery-3.7.1.slim.js" />
+    <None Include="wwwroot\js\jquery-3.7.1.slim.min.js" />
+    <None Include="wwwroot\js\jquery-3.7.1.slim.min.map" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.7.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Hotel.Infrastructure\Hotel.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,235 @@
+﻿<el-form label-position="left" label-width="80px" size="default">
+    <el-row>
+        <el-col :span="12" class="grid-cell">
+            <el-form-item label="酒店名称">
+                <el-select v-model="selectedValue" clearable
+                           filterable
+                           remote
+                           :remote-method="handleInputChange"
+                           v-on:change="handleSelectChange"
+                           placeholder="请输入并选择">
+                    <el-option v-for="option in state.tableData"
+                               :key="option.id"
+                               :label="option.hotelName"
+                               :value="option.hotelCode"></el-option>
+                </el-select>
+            </el-form-item>
+        </el-col>
+
+        <!--平台映射配置-->
+        <el-col :span="24" class="grid-cell">
+            <div class="static-content-item">
+                <el-divider direction="horizontal">平台映射配置</el-divider>
+            </div>
+        </el-col>
+        <el-col :span="24" class="grid-cell">
+            <el-row>
+                <el-form :model="state.ruleForm" status-icon ref="formRef" style="width: 100%">
+                    <el-row  v-for="(item, index) in state.ruleForm.platformConfig">
+                        <el-col :span="12" class="grid-cell">
+                            <el-form-item :label="item.otherPlatTypeName">
+                                <el-input type="text" v-model="item.otherPlatformUrl" autocomplete="off" placeholder="追房平台Url地址" clearable>
+                                </el-input>
+                            </el-form-item>
+                        </el-col>
+                      
+                    </el-row>
+                    <el-row >
+                        <el-col :span="4">
+                            <el-form-item>
+                                <el-button type="primary" v-on:click="savePlatformConfig">保 存</el-button>
+                            </el-form-item>
+                        </el-col>
+                    </el-row>
+                </el-form>
+
+            </el-row>
+        </el-col>
+
+        <!--任务触发设置-->
+        <el-col :span="24" class="grid-cell">
+            <div class="static-content-item">
+                <el-divider direction="horizontal">任务触发设置</el-divider>
+            </div>
+        </el-col>
+        <el-col :span="24" class="grid-cell">
+            <el-row>
+                <el-form :model="state.ruleTaskTriggerForm" :rules="TaskTriggerRules" status-icon ref="TaskTriggerRef" style="width: 100%">
+                    <el-row>
+                        <el-col :span="12" class="grid-cell">
+                            <el-form-item label="日期范围" prop="txtDateRange">
+                                <el-date-picker is-range type="daterange" class="full-width-input"
+                                 v-model="state.ruleTaskTriggerForm.txtDateRange"
+                                                format="YYYY-MM-DD" value-format="YYYY-MM-DD" start-placeholder="开始日期" end-placeholder="结束日期"
+                                                clearable></el-date-picker>
+                            </el-form-item>
+                        </el-col>
+
+                    </el-row>
+                    <el-row>
+                        <el-col :span="12" class="grid-cell">
+                        
+                            <el-form-item label="价格设置" prop="txtPremium">
+                                <el-input type="text" v-model="state.ruleTaskTriggerForm.txtPremium" 
+                                autocomplete="off" placeholder="请输入溢价金额" clearable>
+                                </el-input>
+                            </el-form-item>
+                        </el-col>
+
+                    </el-row>
+                    <el-row>
+                        <el-col :span="12" class="grid-cell">
+                            <el-form-item label="消息通知" prop="selectNoticeTypeValue">
+                                <el-select v-model="state.ruleTaskTriggerForm.selectNoticeTypeValue" clearable placeholder="请选择消息通知方式">
+                                    <el-option v-for="item in state.ruleTaskTriggerForm.options"
+                                               :key="item.value"
+                                               :label="item.label"
+                                               :value="item.value" />
+                                </el-select>
+                            </el-form-item>
+                        </el-col>
+
+                    </el-row>
+                    <el-row>
+                        <el-col :span="12" class="grid-cell">
+                            <el-form-item label="是否启用">
+                                <el-switch v-model="state.ruleTaskTriggerForm.isEnable"></el-switch>
+                            </el-form-item>
+                        </el-col>
+
+                    </el-row>
+                    <el-row>
+                        <el-col :span="12">
+                            <el-form-item>
+                                <el-button type="primary" v-on:click="saveTaskTrigger">保存并生成任务计划</el-button>
+                               @*  <el-button type="primary" v-on:click="saveTaskTrigger">重置任务计划</el-button> *@
+                            </el-form-item>
+                        </el-col>
+                    </el-row>
+                </el-form>
+
+            </el-row>
+        </el-col>
+    </el-row>
+</el-form>
+@section scripts {
+    <script type="text/javascript" setup>
+
+        const app = Vue.createApp({
+            setup() {
+                const state = Vue.reactive({
+                    tableData: [],
+                    ruleForm: {
+                        platformConfig: []
+                    },
+                    ruleTaskTriggerForm:Vue.ref({
+                        txtDateRange:null,
+                        txtPremium:"",
+                        selectNoticeTypeValue:"",
+                        options: [
+                            { value: "1", label: "邮件" },
+                            { value: "2", label: "钉钉" },
+                            { value: "3", label: "短信" }
+                        ],
+                        isEnable:true
+                    }),
+                
+                });
+
+             
+                const selectedValue = Vue.ref(null);
+                const TaskTriggerRef = Vue.ref(null);
+                const TaskTriggerRules = {
+                    txtDateRange:[{ required: true, message: '请填写日期', trigger: 'blur' }],
+                    txtPremium: [{ required: true, message: '请填写溢价', trigger: 'blur' }],
+                    selectNoticeTypeValue: [{ required: true, message: '请选择消息通知方式', trigger: 'blur' }],
+                };
+
+
+                // 保存平台映射配置
+                const savePlatformConfig = async () => {
+                    let rowData = selectedValue.value;
+                    if(rowData == null)
+                    {
+                          alert("请选择酒店！")
+                          return;
+                    }
+                    let platformConfig = state.ruleForm.platformConfig;
+                    console.log(platformConfig);
+                    await axios.post('/save', { data: platformConfig })
+                        .then(response => {
+                            alert("保存成功！")
+                        });
+                }
+
+                 //保存任务触发设置
+                const saveTaskTrigger = () => {
+                    let businessId = selectedValue.value;
+                    if (businessId == null) {
+                        alert("请选择酒店！")
+                        return;
+                    }
+                    console.log(businessId);
+                    TaskTriggerRef.value.validate(async(valid) => {
+                        if (valid) {
+                            await axios.post('/saveTaskTrigger', {
+                                BusinessId: businessId,
+                                StartDate: state.ruleTaskTriggerForm.txtDateRange[0],
+                                EndDate: state.ruleTaskTriggerForm.txtDateRange[1],
+                                Premium: state.ruleTaskTriggerForm.txtPremium,
+                                MsgPushType: state.ruleTaskTriggerForm.selectNoticeTypeValue,
+                                Status: state.ruleTaskTriggerForm.isEnable
+                            }).then(response => {
+                                alert("保存成功！")
+                            });
+                        }
+                    });
+                }
+
+
+                const handleInputChange = async (value) => {
+                    console.log('当前检索关键词：', value);
+                    state.tableData.length = 0;
+                    await axios.post('/page', { Keyword: value, PageIndex: 1, PageSize: 10 })
+                        .then(response => {
+                            state.tableData.push(...response.data);
+                        });
+                };
+
+
+                const handleSelectChange = async (newValue) => {
+                    console.log('选中的值发生变化：', newValue);
+                    axios.get(`/findARHotelByCode/${newValue}`)
+                        .then(response => {
+                            if (response.data != null) {
+                                state.ruleForm.platformConfig = response.data;
+                            }
+                        });
+                };
+
+                Vue.onMounted(() => {
+                    handleSelectChange();
+                });
+                
+
+                return {
+                    tableData: state.tableData,
+                    state,
+                    savePlatformConfig,
+                    saveTaskTrigger,
+                    handleInputChange,
+                    selectedValue,
+                    handleSelectChange,
+                    TaskTriggerRef,
+                    TaskTriggerRules
+                };
+
+               
+            }
+        });
+
+        app.use(ElementPlus);
+        app.mount('#app');
+
+    </script>
+}
