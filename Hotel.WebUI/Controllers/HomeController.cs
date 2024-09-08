@@ -3,12 +3,14 @@ using Hotel.Application.Hotel.Commands.SaveARHotel;
 using Hotel.Application.Hotel.Query.FindARHotelByCode;
 using Hotel.Application.Hotel.Query.PageList;
 using Hotel.Application.TaskTrigger.Commands.SaveTaskTrigger;
+using Hotel.Domain.Repo;
 using Hotel.WebUI.Models;
 using MediatR;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using NetTaste;
 using Newtonsoft.Json;
+using Snowflake.Core;
 using System.Diagnostics;
 using System.Text;
 
@@ -22,14 +24,33 @@ namespace Hotel.WebUI.Controllers
 
         private readonly IHttpClientFactory _httpClientFactory;
 
-        public HomeController(ILogger<HomeController> logger, IMediator mediator, IHttpClientFactory httpClientFactory)
+        private readonly IdWorker _idWorker;
+
+        private readonly IBookRepository _bookRepository;
+
+        public HomeController(ILogger<HomeController> logger, IMediator mediator, IHttpClientFactory httpClientFactory, IdWorker idWorker, IBookRepository bookRepository)
         {
             _logger = logger;
             _mediator = mediator;
             _httpClientFactory = httpClientFactory;
+            _idWorker = idWorker;
+            _bookRepository = bookRepository;
         }
-        public IActionResult Index()
+        public async Task<IActionResult> Index()
         {
+            List<long> taskId = new List<long>();
+
+            for (int i = 0; i < 1000; i++)
+            {
+                taskId.Add(_idWorker.NextId());
+            }
+
+
+            // _bookRepository.AddBook(new Domain.Entity.Book() { Title = "MongoDB²âÊÔ", Author = "caicx", No = _idWorker.NextId() });
+
+           var data= await _bookRepository.GetListAsync(x => x.No == 1832689690612994048);
+
+
             return View();
         }
 

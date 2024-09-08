@@ -1,4 +1,8 @@
-﻿using Hotel.Infrastructure.BackgroundTask;
+﻿using Hotel.Domain.Shared.Appsettings;
+using Hotel.Domain.Shared.Config;
+using Hotel.Infrastructure.BackgroundTask;
+using Hotel.Infrastructure.Data;
+using Snowflake.Core;
 
 namespace Hotel.Infrastructure;
 
@@ -29,6 +33,15 @@ public static class DependencyInjection
         services.AddScoped(typeof(ISqlSugarRepository<>), typeof(SqlSugarRepository<>)); // 仓储注册
 
 
+        services.AddScoped<IBookRepository, BookRepository>();
+
+        var mongodbConfig = Appsetting.Instance.GetSection("MongoDb").Get<MongoDbConfig>();
+        services.AddSingleton<MongoDbContext>(new MongoDbContext(mongodbConfig!.ConnectionString, mongodbConfig.DatabaseName));
+
+
+
+        // 注册雪花算法ID生成器为单例
+        services.AddSingleton<IdWorker>(new IdWorker(1, 1));
 
         services.AddHostedService<HotelTask>();
 
