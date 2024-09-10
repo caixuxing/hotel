@@ -39,6 +39,10 @@ internal sealed class SaveTaskTriggerHandler : IRequestHandler<SaveTaskTriggerCm
                     .SetEndDate(request.EndDate)
                     .SetMsgPushType((PushType)Enum.Parse(typeof(PushType), request.MsgPushType.ToString()))
                     .SetPremium(request.Premium);
+
+                await pursueHouseSettingRepo.UpdateAsync(data);
+                //如果是更新  清空原来追房任务计划记录
+                await _recordRepo.DeletePursueHouseRecord(x=>x.TriggerId==id);
             }
             else
             {
@@ -49,22 +53,12 @@ internal sealed class SaveTaskTriggerHandler : IRequestHandler<SaveTaskTriggerCm
                     request.StartDate,
                     request.EndDate,
                     (PushType)Enum.Parse(typeof(PushType), request.MsgPushType.ToString()));
-            }
-
-            if (id == 0)
-            {
                 id = await pursueHouseSettingRepo.InsertReturnIdentityAsync(data);
-            }
-            else
-            {
-                await pursueHouseSettingRepo.UpdateAsync(data);
-                //如果是更新  清空原来追房任务计划记录
-                await pursueHouseRecordRepo.DeleteAsync(x => x.TriggerId == data.Id);
             }
 
             var arHotel = _db.Queryable<ARHotelEntity>()
                  .Where(x => x.HotelCode == request.BusinessId)
-                 .Select(x => new ARHotelObj { OtherPlatType= x.OtherPlatType, OtherHotelCode= x.OtherHotelCode! })
+                 .Select(x => new ARHotelObj { OtherPlatType = x.OtherPlatType, OtherHotelCode = x.OtherHotelCode! })
                  .ToList();
             if (!arHotel.Any())
             {

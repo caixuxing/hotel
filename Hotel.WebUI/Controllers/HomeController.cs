@@ -3,6 +3,7 @@ using Hotel.Application.Hotel.Commands.SaveARHotel;
 using Hotel.Application.Hotel.Query.FindARHotelByCode;
 using Hotel.Application.Hotel.Query.PageList;
 using Hotel.Application.TaskTrigger.Commands.SaveTaskTrigger;
+using Hotel.Application.TaskTrigger.Query;
 using Hotel.Domain.Repo;
 using Hotel.WebUI.Models;
 using MediatR;
@@ -21,11 +22,8 @@ namespace Hotel.WebUI.Controllers
         private readonly ILogger<HomeController> _logger;
 
         private readonly IMediator _mediator;
-
         private readonly IHttpClientFactory _httpClientFactory;
-
         private readonly IdWorker _idWorker;
-
         private readonly IBookRepository _bookRepository;
 
         public HomeController(ILogger<HomeController> logger, IMediator mediator, IHttpClientFactory httpClientFactory, IdWorker idWorker, IBookRepository bookRepository)
@@ -36,21 +34,9 @@ namespace Hotel.WebUI.Controllers
             _idWorker = idWorker;
             _bookRepository = bookRepository;
         }
-        public async Task<IActionResult> Index()
+        public IActionResult Index()
         {
-            List<long> taskId = new List<long>();
-
-            for (int i = 0; i < 1000; i++)
-            {
-                taskId.Add(_idWorker.NextId());
-            }
-
-
-            // _bookRepository.AddBook(new Domain.Entity.Book() { Title = "MongoDB²âÊÔ", Author = "caicx", No = _idWorker.NextId() });
-
-           var data= await _bookRepository.GetListAsync(x => x.No == 1832689690612994048);
-
-
+       
             return View();
         }
 
@@ -72,8 +58,11 @@ namespace Hotel.WebUI.Controllers
         [HttpGet, Route("findARHotelByCode/{code}")]
         public async Task<JsonResult> GetARHotelByCode([FromRoute] string code)
         {
-            var data = await _mediator.Send(new FindARHotelParamQry(code== "undefined"?string.Empty:code));
-            return Json(data);
+
+            string hotelCode = code == "undefined" ? string.Empty : code;
+            var data = await _mediator.Send(new FindARHotelParamQry(hotelCode));
+            var pursueHouseSetting = await _mediator.Send(new FindPursueHouseSettingQry(hotelCode));
+            return Json(new { data, pursueHouseSetting });
         }
 
         /// <summary>

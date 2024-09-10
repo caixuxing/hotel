@@ -60,22 +60,26 @@ namespace Hotel.Domain.EntityMG
         /// <summary>
         /// 创建时间
         /// </summary>
+        [BsonDateTimeOptions(Kind = DateTimeKind.Local)]
         public DateTime? CreatedTime { get; set; }
 
 
         /// <summary>
         /// 开始时间
         /// </summary>
+        [BsonDateTimeOptions(Kind = DateTimeKind.Local)]
         public DateTime? StartDate { get; private set; }
 
         /// <summary>
         /// 结束时间
         /// </summary>
+        [BsonDateTimeOptions(Kind = DateTimeKind.Local)]
         public DateTime? EndDate { get; private set; }
 
         /// <summary>
         /// 当前日期
         /// </summary>
+        [BsonDateTimeOptions(Kind = DateTimeKind.Local)]
         public DateTime? currentDate { get; private set; }
 
         /// <summary>
@@ -156,10 +160,10 @@ namespace Hotel.Domain.EntityMG
                     result: null,
                     lastRunTime: null,
                     elapsedTime: 0,
-                    createdTime: DateTime.Now,
-                    startDate: startDate.Date,
-                    endDate: endDate.Date,
-                    currentDate: date.Date,
+                    createdTime: DateTime.SpecifyKind(DateTime.Now, DateTimeKind.Utc),
+                    startDate: DateTime.SpecifyKind(startDate.Date, DateTimeKind.Utc), 
+                    endDate: DateTime.SpecifyKind(endDate.Date, DateTimeKind.Utc),
+                    currentDate: DateTime.SpecifyKind(date.Date, DateTimeKind.Utc), 
                     businessId: businessId,
                     premium: premium,
                     msgPushType: msgPushType,

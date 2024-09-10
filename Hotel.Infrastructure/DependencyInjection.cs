@@ -3,6 +3,7 @@ using Hotel.Domain.Shared.Config;
 using Hotel.Infrastructure.BackgroundTask;
 using Hotel.Infrastructure.Data;
 using Snowflake.Core;
+using Polly;
 
 namespace Hotel.Infrastructure;
 
@@ -25,7 +26,7 @@ public static class DependencyInjection
            {
                db.Aop.OnLogExecuting = (sql, pars) =>
                {
-                   var Strsql= new KeyValuePair<string, SugarParameter[]>(sql, pars);
+                   var Strsql = new KeyValuePair<string, SugarParameter[]>(sql, pars);
                };
            });
             return sqlSugar;
@@ -45,16 +46,27 @@ public static class DependencyInjection
         // 注册雪花算法ID生成器为单例
         services.AddSingleton<IdWorker>(new IdWorker(1, 1));
 
-       // services.AddHostedService<HotelTask>();
+        services.AddHostedService<HotelTask>();
 
         // 注入HttpClient
-        services.AddHttpClient("zicp", config => 
+        services.AddHttpClient("zicp", config =>
         {
             config.BaseAddress = new Uri("http://829rv60706.zicp.fun");
             config.DefaultRequestHeaders.Add("key", "1qaz2wsx");
             config.DefaultRequestHeaders.Add("Value", "vp-152733909-001");
+            config.Timeout = TimeSpan.FromSeconds(10);
         });
-        services.AddHttpClient();
+            //.AddTransientHttpErrorPolicy(builder =>
+            //builder.WaitAndRetryAsync(
+            //    retryCount: 1,
+            //    sleepDurationProvider: retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
+            //    onRetryAsync: (response, retryCount, context) =>
+            //    {
+            //        // 可以在这里记录日志
+            //        Console.WriteLine($"Retry {retryCount} implementing ");
+            //        // 如果需要的话，可以在这里添加更多的重试逻辑
+            //        return Task.CompletedTask;
+            //    }));
         return services;
     }
 }

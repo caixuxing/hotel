@@ -53,6 +53,8 @@ namespace Hotel.Infrastructure.Repo
             return  _booksCollection.Find(whereExpression).Limit(50).ToList() ;
         }
 
-     
+        public Task DeletePursueHouseRecord(Expression<Func<PursueHouseRecord, bool>> whereExpression)
+            => _booksCollection.DeleteManyAsync(whereExpression);
+        
     }
 }

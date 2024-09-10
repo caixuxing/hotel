@@ -22,6 +22,8 @@ namespace Hotel.Domain.Repo
         Task UpdatePursueHouseRecord(PursueHouseRecord data);
         Task DeletePursueHouseRecord(ObjectId id);
 
+        Task DeletePursueHouseRecord(Expression<Func<PursueHouseRecord, bool>> whereExpression);
+
         List<PursueHouseRecord> GetListAsync(Expression<Func<PursueHouseRecord, bool>> whereExpression);
     }
 }

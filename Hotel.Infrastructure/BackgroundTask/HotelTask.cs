@@ -6,7 +6,9 @@ using Microsoft.Extensions.Hosting;
 using MongoDB.Bson;
 using MongoDB.Driver;
 using Newtonsoft.Json;
+using System.Collections.Generic;
 using System.Text;
+using Hotel.Domain.Shared.Utils;
 
 namespace Hotel.Infrastructure.BackgroundTask;
 
@@ -23,8 +25,6 @@ internal class HotelTask : BackgroundService
             {PlatTypeEnums.WhereTo, "/spider/qunar"}
     });
 
-
-
     public HotelTask(IServiceScopeFactory scopeFactory, IHttpClientFactory httpClientFactory)
     {
         _scopeFactory = scopeFactory;
@@ -32,14 +32,21 @@ internal class HotelTask : BackgroundService
     }
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-
         while (!stoppingToken.IsCancellationRequested)
         {
-            await DoWorkAsync(stoppingToken);
+            try
+            {
+                await DoWorkAsync(stoppingToken);
+                //休眠30秒
+                await Task.Delay(30000, stoppingToken);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"后台任务执行异常：{ex.Message}");
+            }
 
-            //休眠30秒
-            await Task.Delay(30000, stoppingToken);
         }
+        
     }
 
     /// <summary>
@@ -54,49 +61,66 @@ internal class HotelTask : BackgroundService
         var _PursueHouseRecordRepo = serviceScope.ServiceProvider.GetRequiredService<IPursueHouseRecordRepo>();
         var _taskExecCursorRepo = serviceScope.ServiceProvider.GetRequiredService<ITaskExecCursorRepo>();
         var taskExecCursorData = await _taskExecCursorRepo.GetTaskExecCursorById(new ObjectId(GlobaConst.TaskExecCursorObjId));
-
         int QueueLength = await this.TaskQueuePool(serviceScope, taskExecCursorData);
         if (QueueLength < 1) return;
         var queue = taskQueue.Dequeue();
-
-
         var oneItem = queue?.ARHotelObjs?.SingleOrDefault(x => x.OtherPlatType == PlatTypeEnums.WhereTo.GetHashCode().ToString());
         if (oneItem is not null)
         {
+            //优先查询去哪,把去哪儿平台插入到第一位
             queue?.ARHotelObjs?.Remove(oneItem!);
             queue?.ARHotelObjs?.Insert(0, oneItem!);
         }
-        //优先查询去哪 
         foreach (var i in queue?.ARHotelObjs ?? new())
         {
-            var url = _InitData.Value.SingleOrDefault(x => x.Key == (PlatTypeEnums)Enum.Parse(typeof(PlatTypeEnums), i.OtherPlatType)).Value;
+            PlatTypeEnums otherPlatTypeEnums=(PlatTypeEnums)Enum.Parse(typeof(PlatTypeEnums), i.OtherPlatType);
+            var url = _InitData.Value.SingleOrDefault(x => x.Key == otherPlatTypeEnums).Value;
             var client = _httpClientFactory.CreateClient("zicp");
-            //优先查询去哪
-            var paramData = queue?.ARHotelObjs?.SingleOrDefault(x => x.OtherPlatType == PlatTypeEnums.WhereTo.GetHashCode().ToString());
+            var paramData = queue?.ARHotelObjs?.SingleOrDefault(x => x.OtherPlatType == i.OtherPlatType);
             var param = new
             {
                 hotel_id = paramData?.OtherHotelCode,
                 check_in_date = queue?.CurrentDate.ToString("yyyy-MM-dd"),
                 check_out_date = queue?.EndDate.ToString("yyyy-MM-dd")
             };
+            taskExecCursorData.RunId = queue?.No ?? 0;
+            Console.WriteLine($"执行任务计划编号:{taskExecCursorData.RunId}-酒店编码:{queue?.BusinessId}-平台类型：{otherPlatTypeEnums.ToDescription()}");
             var content = new StringContent(JsonConvert.SerializeObject(param), Encoding.UTF8, "application/json");
             var response = await client.PostAsync(url, content);
             var result = await response.Content.ReadAsStringAsync();
-            var data = JsonConvert.DeserializeObject<ResultJson<List<HotelData>>>(result);
+            var data = StrFormat<ResultJson<List<HotelData>>>(result,url);
             var lowestPriceItem = data?.Data?.Where(item => data?.Data?.Min(i => i.Price) == item.Price).FirstOrDefault();
             //最低价大于溢价跳出遍历
             if (lowestPriceItem?.Price > queue?.Premium)
             {
                 //ToDo:推送信息通知
-
-
+                Console.WriteLine($"{otherPlatTypeEnums.ToDescription()}:推送信息通知");
+                await Task.Delay(5000);
                 //跳出其它平台查价
                 break;
             }
         }
-        taskExecCursorData.RunId = queue?.No ?? 0;
         await _taskExecCursorRepo.UpdateTaskExecCursor(taskExecCursorData);
-        Console.WriteLine($"执行任务计划编号:{taskExecCursorData.RunId}-酒店编码:{queue?.BusinessId}");
+    }
+
+    /// <summary>
+    /// 字符串格式化
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <param name="result"></param>
+    /// <param name="url"></param>
+    /// <returns></returns>
+    public T? StrFormat<T>(string result,string url)
+    {
+        try
+        {
+            return JsonConvert.DeserializeObject<T>(result);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"远程请求地址:{url}解析异常错误信息:{ex.Message}");
+            return default(T);
+        }
     }
 
     /// <summary>
@@ -121,6 +145,7 @@ internal class HotelTask : BackgroundService
                               }).ToList();
             if (data?.Count == 0)
             {
+               await Task.Delay(999999999);
                 Console.WriteLine("===============本轮所有任务计划已执行完成,即将开启下一轮任务计划执行!===============");
                 taskExecCursorData.TakeId = 0;
                 taskExecCursorData.RunId = 0;
