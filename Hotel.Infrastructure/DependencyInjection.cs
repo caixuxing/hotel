@@ -34,6 +34,8 @@ public static class DependencyInjection
 
 
         services.AddScoped<IBookRepository, BookRepository>();
+        services.AddScoped<IPursueHouseRecordRepo, PursueHouseRecordRepo>();
+        services.AddScoped<ITaskExecCursorRepo, TaskExecCursorRepo>();
 
         var mongodbConfig = Appsetting.Instance.GetSection("MongoDb").Get<MongoDbConfig>();
         services.AddSingleton<MongoDbContext>(new MongoDbContext(mongodbConfig!.ConnectionString, mongodbConfig.DatabaseName));
@@ -43,8 +45,7 @@ public static class DependencyInjection
         // 注册雪花算法ID生成器为单例
         services.AddSingleton<IdWorker>(new IdWorker(1, 1));
 
-        services.AddHostedService<HotelTask>();
-
+       // services.AddHostedService<HotelTask>();
 
         // 注入HttpClient
         services.AddHttpClient("zicp", config => 

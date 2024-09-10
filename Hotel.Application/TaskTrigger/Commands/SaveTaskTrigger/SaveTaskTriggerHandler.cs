@@ -1,4 +1,9 @@
-﻿using Newtonsoft.Json;
+﻿using Hotel.Domain.EntityMG;
+using Hotel.Domain.ValueObject;
+using MongoDB.Bson;
+using MongoDB.Bson.Serialization;
+using Newtonsoft.Json;
+using Snowflake.Core;
 using System.Collections.Generic;
 
 namespace Hotel.Application.TaskTrigger.Commands.SaveTaskTrigger;
@@ -7,7 +12,16 @@ internal sealed class SaveTaskTriggerHandler : IRequestHandler<SaveTaskTriggerCm
 {
     readonly ISqlSugarClient _db;
 
-    public SaveTaskTriggerHandler(ISqlSugarClient db)=> _db = db;
+     readonly IdWorker _idWorker;
+
+    readonly IPursueHouseRecordRepo _recordRepo;
+
+    public SaveTaskTriggerHandler(ISqlSugarClient db, IdWorker idWorker, IPursueHouseRecordRepo recordRepo )
+    {
+        _db = db;
+        _idWorker = idWorker;
+        _recordRepo = recordRepo;
+    }
 
     public async Task<bool> Handle(SaveTaskTriggerCmd request, CancellationToken cancellationToken)
     {
@@ -50,27 +64,35 @@ internal sealed class SaveTaskTriggerHandler : IRequestHandler<SaveTaskTriggerCm
 
             var arHotel = _db.Queryable<ARHotelEntity>()
                  .Where(x => x.HotelCode == request.BusinessId)
-                 .Select(x => new { x.OtherPlatType, x.OtherHotelCode })
+                 .Select(x => new ARHotelObj { OtherPlatType= x.OtherPlatType, OtherHotelCode= x.OtherHotelCode! })
                  .ToList();
             if (!arHotel.Any())
             {
                 throw new Exception("请先配置酒店的映射平台信息！");
             }
+            //var triggerRecord = PursueHouseRecordEntity.BuildTaskDetail(
+            //    triggerId: id,
+            //    startDate: request.StartDate,
+            //    endDate: request.EndDate,
+            //    businessId: request.BusinessId,
+            //    premium: request.Premium,
+            //    msgPushType: (PushType)Enum.Parse(typeof(PushType), request.MsgPushType.ToString()),
+            //   JsonConvert.DeserializeObject(JsonConvert.SerializeObject(arHotel))
+            //    ).ToList();
+            ////插入追房任务计划
+            //await pursueHouseRecordRepo.InsertRangeAsync(triggerRecord);
 
-
-
-
-            var triggerRecord = PursueHouseRecordEntity.BuildTaskDetail(
+            var pursueHouseRecordData = PursueHouseRecord.BuildTaskDetail(
+                no: _idWorker,
                 triggerId: id,
                 startDate: request.StartDate,
                 endDate: request.EndDate,
                 businessId: request.BusinessId,
                 premium: request.Premium,
                 msgPushType: (PushType)Enum.Parse(typeof(PushType), request.MsgPushType.ToString()),
-               JsonConvert.DeserializeObject(JsonConvert.SerializeObject(arHotel))
+               arHotel
                 ).ToList();
-            //插入追房任务计划
-            await pursueHouseRecordRepo.InsertRangeAsync(triggerRecord);
+            await _recordRepo.AddPursueHouseRecord(pursueHouseRecordData);
             context.Commit();
         }
         return true;

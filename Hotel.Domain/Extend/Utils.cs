@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.IO;
 using System.Linq;
+using System.Security.Policy;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -21,7 +22,8 @@ namespace Hotel.Domain
             {PlatTypeEnums.EXP, (otherPlatformUrl)=>RegexStr(otherPlatformUrl,".h\\d+.")},
             {PlatTypeEnums.SameTrip, (otherPlatformUrl)=>RegexStr(otherPlatformUrl,".?hotelId=\\d+&")},
             {PlatTypeEnums.owl, (otherPlatformUrl)=>RegexStr(otherPlatformUrl,"-d\\d+-")},
-            {PlatTypeEnums.Agoda, (otherPlatformUrl)=>new Uri(otherPlatformUrl).LocalPath.Substring(1)}
+            {PlatTypeEnums.Agoda, (otherPlatformUrl)=>new Uri(otherPlatformUrl).LocalPath.Substring(1)},
+            {PlatTypeEnums.WhereTo, (otherPlatformUrl)=>QunaerUrlRegexStr(otherPlatformUrl)},
         });
 
 
@@ -48,6 +50,18 @@ namespace Hotel.Domain
             if (match.Count < 1) return string.Empty;
             var val = match[0].Value;
             return Regex.Replace(val, @"[^\d]", "");
+        }
+
+        public static string QunaerUrlRegexStr(string url)
+        {
+            Match match = Regex.Match(url, @"city/([^/]+)/dt-(\d+)");
+            if (match.Success)
+            {
+                string result = match.Value;
+                string newString = result.Replace("city/", "");
+                return newString;
+            }
+            return string.Empty;
         }
     }
 }

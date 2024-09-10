@@ -1,4 +1,4 @@
-﻿using Hotel.Domain.Entity;
+﻿using Hotel.Domain.EntityMG;
 using MongoDB.Bson;
 using System;
 using System.Collections.Generic;

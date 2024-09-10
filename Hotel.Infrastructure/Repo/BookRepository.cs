@@ -1,4 +1,5 @@
-﻿using Hotel.Infrastructure.Data;
+﻿using Hotel.Domain.EntityMG;
+using Hotel.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using MongoDB.Bson;
 using MongoDB.Driver;
